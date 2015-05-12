@@ -73,7 +73,7 @@
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-\listoffigures
+%\listoffigures
 
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -183,16 +183,42 @@ n*m*((2+4*0.5)*r+w+2c)							tempSlope = (ourData[roundTempY][roundTempX].elevat
 
 total time $=n*m*(8r+5w+2c)$
 
+assuming time for write is equal to the time for read then:
 
+total time $=8 (\frac{bytes}/{element})*n*m*(13*r*\frac{1Mbytes}{1e6 bytes} + 2c)$
+
+with n=1966 and m=2054, using the Stream performance the best Rate shown in table \ref{table:STREAM} an estimate for the performance of a read is 15564.0 MB/s, time for a read is $\frac{1}{15564.0 MB/s}$
+
+
+The compute nodes on Mt. Moran used for testing use Intel chips with 2.6 GHz which gives an estimate of $c=2.6e9$ flops. The estimated time based on this performance model gives t=$  0.09159 $seconds if we assume 1-4 bytes moved per 32 bytes for each floating point operation gives 0.96\% to 3.8\% of peak performance giving an estimated time  of t=$8.7926e-4$ to  t=$0.0035$ [Sec]
+
+\begin{table}[ht]
+\caption{Stream Results on Mt. Moran}
+\centering
+\begin{tabular}{c c  c c c}
+\hline\hline
+\hline
+Function   & Best Rate MB/s & Avg time  &   Min time &    Max time \\ [0.5ex] 
+\hline
+
+Copy:    &     14078.4    & 0.011393    & 0.011365     & 0.011444\\
+Scale     &  14098.2    & 0.011366     & 0.011349    & 0.011390\\
+Add:      & 15564.0    & 0.015445     & 0.015420     & 0.015477\\
+Triad:    & 15379.7    & 0.015635     & 0.015605     & 0.015659\\
+
+\hline
+\end{tabular}
+\label{table:STREAM}
+\end{table} 
 
 
 
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
-\subsubsection{Improvements for User}
-Add input file to modify time intervals and....
-
-output file structure
+%%\subsubsection{Improvements for User}
+%%Add input file to modify time intervals and....
+%%
+%%output file structure
 
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -212,10 +238,10 @@ output file structure
 \centering
 \begin{tabular}{c c c}
 \hline\hline
- - & Time for Loop(s) & Rate [MB/s]\\ [0.5ex] 
+ - & Time [Sec] &  Time [Sec] \\ [0.5ex] 
 \hline
-min & 4E-06 & \\ 
-max & 1.08E-04 & \\
+min & 4e-06 & 4e-06 \\ 
+max & 1.08e-04 & 7e-06\\
 
 \hline
 \end{tabular}

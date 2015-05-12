@@ -67,7 +67,7 @@
   \begin{tabular}{@{}cccc@{}}
     \includegraphics[width=.75\textwidth]{./figures/titleBar.png} 
   \end{tabular}
-  \caption{}
+%  \caption{}
   \label{}
 \end{figure}
 
@@ -81,13 +81,15 @@
 
 %Talk about the purpose, creaters, and users....
 
-This program is designed to model shade given elevation and location information for a selected land area. With this information a model of watershed can be created for primary use by CI-Water Project for predicting locations for forest fire remediation. The uploaded land area of interest can simply be downloaded off of GIS, the user can select a time interval over the course of a specific day of the year. The GPS coordinates of the land area as well as day of the year provide solar angle along with the topography of the land indicate if an area is shaded or not. Currently the program  only indicates if an element of the land area is shaded or not shaded. No information of temperature or partial shading is provided and may be a future goal however currently this information alone is sufficient for CI-Water Project's needs.
+The Shade Model program is designed to model shade given an elevation and location information for a selected land area. With this information a model of watershed can be created for primary use by CI-Water Project for predicting locations for forest fire remediation. The uploaded land area of interest can simply be downloaded off of GIS, the user can select a time interval over the course of a specific day of the year, by default the time increment is 15 minutes. The GPS coordinates of the land area as well as day of the year provide solar angle along with the topography of the land indicates if an area is shaded or not. Currently the program  only indicates if an element of the land area is shaded or not shaded, this is represented in the output file as '0' for shaded and '1' for non-shaded. No information of temperature or partial shading is provided and may be a future goal however currently this information alone is sufficient for CI-Water Project's needs.
 
-The original program was created by Troy Axthelm and Jingyu Li  funded by CI-Water Project. For more information and location of the open source code please see the link below:
+The original program was created by Troy Axthelm and Jingyu Li  funded by CI-Water Project. For more information and location of the open source code see the link below:
 
 https://sites.google.com/site/uwyoshademodel/
 
-As a project for a graduate coarse: Designing and Building Applications for Extreme Scale Systems lead by instructor William Gropp and Professor Craig Douglas, our group intends make improvements in performance leading to faster simulations as well as making the program more flexible and easier to use for the user during runtime as well as post processing and visualization.
+As a project for a graduate coarse: Designing and Building Applications for Extreme Scale Systems lead by instructor William Gropp and Professor Craig Douglas, our group intends to make improvements in performance leading to faster simulations using fewer computational resources.
+
+%as well as making the program more flexible and easier to use for the user during runtime as well as post processing and visualization.
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsection{Initial Benchmarking}
@@ -95,46 +97,53 @@ As a project for a graduate coarse: Designing and Building Applications for Extr
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsubsection{Parlib MPI}
 
-To test functionality of different Message Passing Interface (MPI) routines and avoid conflicts with Parlib, we decided to remove the Parlib dependency in this particular case. While there are advantages to having an interface library, we are exploring different methods with MPI which are not yet implemented in Parlib, such as MPI derived data types and structures. To effectively pass structures in MPI as an array data type, we needed to utilize a method which was not available in the Parlib implementation. This was a primary driving factor for removing the interface code in this particular case. There was also possibility that we may have implemented MPI-3 routines which were not also available in the Parlib implementation.
+To test functionality of different Message Passing Interface (MPI) routines and avoid conflicts with Parlib, we decided to remove the Parlib dependency in this particular case. While there are advantages to having an interface library, we are exploring different methods with MPI which are not yet implemented in Parlib, such as MPI derived data types and structures. To effectively pass structures in MPI as an array data type, we needed to utilize a method which was not available in the Parlib implementation. This was a primary driving factor for removing the interface code for this project. There was also a possibility that we may have implemented MPI-3 routines which were not also available in the Parlib implementation.
+
+%code in this particular case.
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsubsection{MPI}
 
-An initial profiling of the code in parallel was used to determine trouble areas in the code where performance improvements could be made. The result of using the Allinea profiler showed that over 80\% of the computing time was spent in a loop in main.c, the specific code for this problem area is shown below for convienence:
-{\small
-\begin{verbatim}
+An initial profiling of the code in parallel was used to determine trouble areas in the code where performance improvements could be made. The result of using Allinea profiler showed that over 80\% of the computing time was spent in a loop in main.c, the specific code for this problem area is shown in Appendix \ref{App:loop_code_main.c}
 
-//Step along azimuth until off of grid or the observer point is determined to be shaded
-while (tempX >= 0 && tempX <= (numCols-1) && tempY >= 0 && tempY <= (numRows - 1))
-{	
 
-	roundTempX = (int)round(tempX);
-	roundTempY = (int)round(tempY);			
+% below for convienence:
 
-	if(roundTempX != i ||  roundTempY != j) 
-	{
-		tempSlope = (ourData[roundTempY][roundTempX].elevation - ourData[i][j].elevation)/sqrt(lenX*lenX + lenY*lenY);	
 
-		if(solarAlt <= tempSlope)
-		{	
-			ourData[i][j].shading[k] = 1;
-			break;
-		}
-	}												
-
-	lenX += stepX;		
-	lenY += stepY;
-
-	tempX += stepTempX;
-	tempY += stepTempY;
-
-}
-\end{verbatim}}
+%{\small
+%\begin{verbatim}
+%
+%//Step along azimuth until off of grid or the observer point is determined to be shaded
+%while (tempX >= 0 && tempX <= (numCols-1) && tempY >= 0 && tempY <= (numRows - 1))
+%{	
+%
+%	roundTempX = (int)round(tempX);
+%	roundTempY = (int)round(tempY);			
+%
+%	if(roundTempX != i ||  roundTempY != j) 
+%	{
+%		tempSlope = (ourData[roundTempY][roundTempX].elevation - ourData[i][j].elevation)/sqrt(lenX*lenX + lenY*lenY);	
+%
+%		if(solarAlt <= tempSlope)
+%		{	
+%			ourData[i][j].shading[k] = 1;
+%			break;
+%		}
+%	}												
+%
+%	lenX += stepX;		
+%	lenY += stepY;
+%
+%	tempX += stepTempX;
+%	tempY += stepTempY;
+%
+%}
+%\end{verbatim}}
 
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsection{Performance Model}
 
-A performance model was created to give us a rough idea on the expected timing in the area described above where over 80\% of the computation time is spent. The model is defined as:
+A performance model was created to give us a rough idea on the expected timing in the area described above where over 80\% of the computation time is spent. To verify that this is an area that can be improved a simple performance model is created and compared with timing results of the actual code over this loop. This performance model is only to demonstrate an upper limit on performance. The model is defined as:
 
 total time $=n*m*(8r+5w+2c)$
 
@@ -171,61 +180,59 @@ Triad:    & 15379.7    & 0.015635     & 0.015605     & 0.015659\\
 \subsection{Coding Improvements}
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
-\subsubsection{Algorithmic Improvements}
-introduce global constants
-reduce built in algebraic functions
-example code from landReader.c:
+%\subsubsection{Algorithmic Improvements}
+\subsubsection{Replace constants and inline math functions}
 
-$temp.latitude = latitude*180.0/(4*atan(1))$;	$//convert the latitude to degrees	$
-
-where $4*atan(1) = 3.141592653589793 = \pi$
+An easy method to make small performance improvements as well as make the code more easily readable is to replace inline math functions with constants. This improvement is especially important if it is in a loop. An example of this is the need for $\pi$ in some trigonometry calculations. If $\pi$ is defined upfront then it can be used multiple times in the code instead of relying on a library look up to calculate $\pi$. This is seen in the file "landReader.c" where $4*atan(1) = 3.141592653589793 = \pi$.
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsubsection{Linear Memory}
 
-To make improvements to the part of the code where the majority of the compute time is taken, by improving the way the array's "outData.elevation" is read and "ourData.shading" is written will make significant improvements to performance. To verify that this is an area that can be improved a simple performance model is created and compared with timing results of the actual code over this loop. This performance model is only to demonstrate an upper limit on performance.
+To make improvements to the part of the code where the majority of the compute time is taken as discussed above and shown in Apendix \ref{App:loop_code_main.c}, by improving the way the array's "outData.elevation" is read and "ourData.shading" is written will make significant improvements to performance. 
 
-{\small
-\begin{verbatim}
-
-									//Step along azimuth until off of grid or the observer point is determined to be shaded
-loop through numCols & numRows: n,m		while (tempX >= 0 && tempX <= (numCols-1) && tempY >= 0 && tempY <= (numRows - 1))
-									{	
-									
-%n*m*(r+0.5*w)								roundTempX = (int)round(tempX);
-%n*m*(r+0.5*w)								roundTempY = (int)round(tempY);			
-									
-										if(roundTempX != i ||  roundTempY != j) 
-										{
-n*m*((2+4*0.5)*r+w+2c)							tempSlope = (ourData[roundTempY][roundTempX].elevation - ourData[i][j].elevation)/sqrt(lenX*lenX + lenY*lenY);	
-									
-											if(solarAlt <= tempSlope)
-											{	
-%n*m*(w)											ourData[i][j].shading[k] = 1;
-												break;
-											}
-										}												
-									
-%4*n*m*0.5*(r+w)								lenX += stepX;		
-										lenY += stepY;
-									
-										tempX += stepTempX;
-										tempY += stepTempY;
-									
-									}
-\end{verbatim}}
+%{\small
+%\begin{verbatim}
+%
+%									//Step along azimuth until off of grid or the observer point is determined to be shaded
+%loop through numCols & numRows: n,m		while (tempX >= 0 && tempX <= (numCols-1) && tempY >= 0 && tempY <= (numRows - 1))
+%									{	
+%									
+%%n*m*(r+0.5*w)								roundTempX = (int)round(tempX);
+%%n*m*(r+0.5*w)								roundTempY = (int)round(tempY);			
+%									
+%										if(roundTempX != i ||  roundTempY != j) 
+%										{
+%n*m*((2+4*0.5)*r+w+2c)							tempSlope = (ourData[roundTempY][roundTempX].elevation - ourData[i][j].elevation)/sqrt(lenX*lenX + lenY*lenY);	
+%									
+%											if(solarAlt <= tempSlope)
+%											{	
+%%n*m*(w)											ourData[i][j].shading[k] = 1;
+%												break;
+%											}
+%										}												
+%									
+%%4*n*m*0.5*(r+w)								lenX += stepX;		
+%										lenY += stepY;
+%									
+%										tempX += stepTempX;
+%										tempY += stepTempY;
+%									
+%									}
+%\end{verbatim}}
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
-\subsection{Threading}
+\subsubsection{Threading}
 
 
+%----------------------------------------------------------------------------------------------------------------------------------------------------------------
+\subsubsection{MPI Routines}
 
+The original version of the code had each MPI process reading each data. By changing this system to have one process read the data and use MPI\_Bcast to "broadcast" the data to all other processes this effectively allowed the code to pass structures in MPI as an array data type.
 
 
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsection{Results}
-%----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Using one compute node on Mt. Moran some timings of various stages of optimization show the improvements made as shown in table \ref{table:code_timing}.
 
@@ -245,7 +252,7 @@ Threading & 79 & 0.136\\
 \label{table:code_timing}
 \end{table} 
 
-To compare the timing improvements made with the performance model viewing the maximum and minimum times in the computationally expensive loop described above are provided in table \ref{table:loop_timing}. Since the code can exit out of the loop early if shade is the resulting land slope is greater than the solar altitude it is more informative to compare the maximum observed time in the loop. The base code maximum time is on the same magnitude as the performance model prediction where as the improved code is 15 times faster.
+To compare the improvements made with the predicted performance model, the maximum and minimum times in the computationally expensive loop described above are provided in table \ref{table:loop_timing}. Since the code can exit out of the loop early the resulting land slope is greater than the solar altitude (indicated a shaded area) it is more informative to compare the maximum observed time in the loop. The base code maximum time is on the same magnitude as the performance model prediction where as the improved code is 15 times faster.
 
 \begin{table}[ht]
 \caption{Inner Loop Timing Results}
@@ -266,11 +273,11 @@ max & 1.08e-04 & 7e-06 & 15.43\\
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsection{Pit Falls}
 
-While group projects are challenging having multiple people working on one code becomes an increasingly difficult challenge to try and manage. Using code repositories helps to mitigate code rework and provides the most updated version to all group members if used properly. 
+While group projects are challenging having multiple people working on a coding based project becomes an increasingly difficult to manage. Using code repositories can help to mitigate code rework and provides the most updated version to all group members however this still relies on diligent users.
 
-While this group did achieve the main goal of producing a faster code for the Shade Model however there exists a problem within one of the updates made making this code unable to reproduce 100 \% repeatable results. Shown below in figure \ref{} shows a region of no shade when according to the Base code there should be shade.
+While this group did achieve the main goal of producing a faster code for the Shade Model however there exists a problem within one of the updates made, making this code unable to reproduce 100 \% repeatable results with the base case. Figure \ref{} below shows a region on the East part of the grid of no shade when according to the Base code there should be shade.
 
-This error could have been avoid if more test cases were run while also using more commits to work through the changes more carefully.
+This error could have been avoid if more test cases were run while also using more commits to work through the changes slower and more carefully.
 
 
 
@@ -285,7 +292,7 @@ A & B & C \tabularnewline
 \scalebox{0.14}{\includegraphics{./figures/gradientShadePlot_140.jpg}}  
 
 \tabularnewline
-\end{tabular}\caption{}
+\end{tabular}\caption{A: Base Test Case (No errors), B: New code missing shaded section, C: New code with elevation removed showing difference between base test case and new code}
 \label{}
 \end{figure}
 %
@@ -296,7 +303,7 @@ A & B & C \tabularnewline
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsection{Conclusion}
 
-The Shade Model is a useful tool for research scientists however improving the performance of the code would allow not only quicker computation in general but allow larger grid sections to be analyzed at once while using fewer computational resources. Using techniques learned from the HPC course this group was able to pin point areas of the code to improve, establish a performance model to give 
+The Shade Model is a useful tool for research scientists however improving the performance of the code would allow not only quicker computation in general but also allow larger land areas to be analyzed at once while using fewer computational resources. Using techniques learned from the HPC course this group was able to pin point areas of the code to improve, establish a performance model to give a prediction of possible performance expectation as well as ideas on not only using MPI but also OpenMP to take advantage of multi-core chip capabilities as well as HPC resources. The updated version of the code does not provide an accurate solution however the main goal of our project was achieved  by significantly increasing performance (174 \% faster than the base case). Not only did our group learn how to implement in an actual application of the HPC course but also how to prevent future downfalls when working in a group setting.
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -306,24 +313,57 @@ The Shade Model is a useful tool for research scientists however improving the p
 
 \newpage
 \appendix
-\section{\\Original Code} \label{App:AppendixA}
+\section{\\Reference Main.c Code} \label{App:loop_code_main.c}
 
 {\small
+\begin{verbatim}
 
-\lstinputlisting{./orig_code/main.c}
-\lstinputlisting{./orig_code/azimuth.c}
-\lstinputlisting{./orig_code/hourAngleTest.c}
-\lstinputlisting{./orig_code/landReader.c}
-\lstinputlisting{./orig_code/localHourAngle.c}
-\lstinputlisting{./orig_code/parlib_mpi.c}
-\lstinputlisting{./orig_code/parlib.c}
-\lstinputlisting{./orig_code/solarAltitude.c}
-\lstinputlisting{./orig_code/solarAltTest.c}
-\lstinputlisting{./orig_code/sunDeclination.c}
-\lstinputlisting{./orig_code/test.c}
-\lstinputlisting{./orig_code/tilt.c}
-\lstinputlisting{./orig_code/timeDifference.c}
+//Step along azimuth until off of grid or the observer point is determined to be shaded
+while (tempX >= 0 && tempX <= (numCols-1) && tempY >= 0 && tempY <= (numRows - 1))
+{	
+
+	roundTempX = (int)round(tempX);
+	roundTempY = (int)round(tempY);			
+
+	if(roundTempX != i ||  roundTempY != j) 
+	{
+		tempSlope = (ourData[roundTempY][roundTempX].elevation - ourData[i][j].elevation)/sqrt(lenX*lenX + lenY*lenY);	
+
+		if(solarAlt <= tempSlope)
+		{	
+			ourData[i][j].shading[k] = 1;
+			break;
+		}
+	}												
+
+	lenX += stepX;		
+	lenY += stepY;
+
+	tempX += stepTempX;
+	tempY += stepTempY;
+
 }
+\end{verbatim}}
+
+
+
+
+%{\small
+%
+%\lstinputlisting{./orig_code/main.c}
+%\lstinputlisting{./orig_code/azimuth.c}
+%\lstinputlisting{./orig_code/hourAngleTest.c}
+%\lstinputlisting{./orig_code/landReader.c}
+%\lstinputlisting{./orig_code/localHourAngle.c}
+%\lstinputlisting{./orig_code/parlib_mpi.c}
+%\lstinputlisting{./orig_code/parlib.c}
+%\lstinputlisting{./orig_code/solarAltitude.c}
+%\lstinputlisting{./orig_code/solarAltTest.c}
+%\lstinputlisting{./orig_code/sunDeclination.c}
+%\lstinputlisting{./orig_code/test.c}
+%\lstinputlisting{./orig_code/tilt.c}
+%\lstinputlisting{./orig_code/timeDifference.c}
+%}
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 

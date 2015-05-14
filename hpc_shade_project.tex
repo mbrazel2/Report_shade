@@ -154,7 +154,7 @@ total time $=8 (\frac{bytes}{element})*n*m*(13*r*\frac{1Mbytes}{1e6 bytes} + 2c)
 with n=1966 and m=2054, using the Stream performance the best Rate shown in table \ref{table:STREAM} an estimate for the performance of a read is 15564.0 MB/s, time for a read is $\frac{1}{15564.0 MB/s}$
 
 
-The compute nodes on Mt. Moran used for testing use Intel chips with 2.6 GHz which gives an estimate of $c=2.6e9$ flops. The estimated time based on this performance model gives t=$  0.09159 $seconds if we assume 1-4 bytes moved per 32 bytes for each floating point operation gives 0.96\% to 3.8\% of peak performance giving an estimated time  of t=$8.7926e-4$ to  t=$0.0035$ [Sec]
+The compute nodes on Mt. Moran used for testing use Intel chips with 2.6 GHz which gives an estimate of $c=2.6e9$ flops. The estimated time based on this performance model gives t=$  0.09159 $ seconds if we assume 1-4 bytes moved per 104 bytes for each floating point operation gives 0.96\% to 3.8\% of peak performance giving an estimated time  of t=$8.7926e-4$ to  t=$0.0035$ [Sec]
 
 \begin{table}[ht]
 \caption{Stream Results on Mt. Moran}
@@ -181,14 +181,14 @@ Triad:    & 15379.7    & 0.015635     & 0.015605     & 0.015659\\
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 %\subsubsection{Algorithmic Improvements}
-\subsubsection{Replace constants and inline math functions}
+\subsubsection{Replace equations  and inline math functions with constants}
 
 An easy method to make small performance improvements as well as make the code more easily readable is to replace inline math functions with constants. This improvement is especially important if it is in a loop. An example of this is the need for $\pi$ in some trigonometry calculations. If $\pi$ is defined upfront then it can be used multiple times in the code instead of relying on a library look up to calculate $\pi$. This is seen in the file "landReader.c" where $4*atan(1) = 3.141592653589793 = \pi$.
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsubsection{Linear Memory}
 
-To make improvements to the part of the code where the majority of the compute time is taken as discussed above and shown in Apendix \ref{App:loop_code_main.c}, by improving the way the array's "outData.elevation" is read and "ourData.shading" is written will make significant improvements to performance. 
+To make improvements to the part of the code where the majority of the compute time is taken as discussed above and shown in Apendix \ref{App:loop_code_main.c}, by improving the way the array's "outData.elevation" is read and "ourData.shading" is written will make significant improvements to performance. As seen in the performance model, a large amount of time is spent reading and writing data from memory.  The original code used a 2D array implemented as a list of pointers to pointers of doubles.  When reading and writing to memory, this can lead to many cache misses.  So to help improve cache efficiency, this data structure was linearized so that all data access could be accomplished from a single contiguous memory section.
 
 %{\small
 %\begin{verbatim}
@@ -223,6 +223,7 @@ To make improvements to the part of the code where the majority of the compute t
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsubsection{Threading}
 
+The use of for loop style applications many times generally grant themselves to utilize a shared memory programming paradigms. With this, a small section of the code was instrumented with OpenMP multithreading. This occurs in the file reader portion where a the original data structure elements are calculated. Even though this was only a small section of the code in main.c, it did provide an area for experimentation of using threads in the application. With the threading model, performance was increased by approximately 40\% using 4 threads. While this doesn't like very much gain, the 40\% was a global improvement over the entire file reading and data structure element calculations which the file reader dominated the cycles.
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsubsection{MPI Routines}
@@ -252,7 +253,7 @@ Threading & 79 & 0.136\\
 \label{table:code_timing}
 \end{table} 
 
-To compare the improvements made with the predicted performance model, the maximum and minimum times in the computationally expensive loop described above are provided in table \ref{table:loop_timing}. Since the code can exit out of the loop early the resulting land slope is greater than the solar altitude (indicated a shaded area) it is more informative to compare the maximum observed time in the loop. The base code maximum time is on the same magnitude as the performance model prediction where as the improved code is 15 times faster.
+To compare the improvements made with the predicted performance model, the maximum and minimum times in the computationally expensive loop described above are provided in table \ref{table:loop_timing}. Since the code can exit out of the loop early the resulting land slope is greater than the solar altitude (indicated a shaded area) it is more informative to compare the maximum observed time in the loop. The base code maximum time is on the same magnitude as the performance model prediction where as the improved code is 93.5\% faster.
 
 \begin{table}[ht]
 \caption{Inner Loop Timing Results}
@@ -262,7 +263,7 @@ To compare the improvements made with the predicted performance model, the maxim
  - & Base Code Time [Sec] &  Improved Code Time [Sec]  & Ratio w.r.t Base Code\\ [0.5ex] 
 \hline
 min & 4e-06 & 4e-06 & 1 \\ 
-max & 1.08e-04 & 7e-06 & 15.43\\
+max & 1.08e-04 & 7e-06 & 0.0648\\
 
 \hline
 \end{tabular}
@@ -275,7 +276,7 @@ max & 1.08e-04 & 7e-06 & 15.43\\
 
 While group projects are challenging having multiple people working on a coding based project becomes an increasingly difficult to manage. Using code repositories can help to mitigate code rework and provides the most updated version to all group members however this still relies on diligent users.
 
-While this group did achieve the main goal of producing a faster code for the Shade Model however there exists a problem within one of the updates made, making this code unable to reproduce 100 \% repeatable results with the base case. Figure \ref{} below shows a region on the East part of the grid of no shade when according to the Base code there should be shade.
+While this group did achieve the main goal of producing a faster code for the Shade Model however there exists a problem within one of the updates made, making this code unable to reproduce 100\% repeatable results with the base case. Figure \ref{} below shows a region on the East part of the grid of no shade when according to the Base code there should be shade.
 
 This error could have been avoid if more test cases were run while also using more commits to work through the changes slower and more carefully.
 
@@ -292,7 +293,7 @@ A & B & C \tabularnewline
 \scalebox{0.14}{\includegraphics{./figures/gradientShadePlot_140.jpg}}  
 
 \tabularnewline
-\end{tabular}\caption{A: Base Test Case (No errors), B: New code missing shaded section, C: New code with elevation removed showing difference between base test case and new code}
+\end{tabular}\caption{ResultA: Base Test Case (No errors), B: New code missing shaded section, C: New code with elevation removed showing difference between base test case and new code}
 \label{}
 \end{figure}
 %
@@ -303,7 +304,7 @@ A & B & C \tabularnewline
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 \subsection{Conclusion}
 
-The Shade Model is a useful tool for research scientists however improving the performance of the code would allow not only quicker computation in general but also allow larger land areas to be analyzed at once while using fewer computational resources. Using techniques learned from the HPC course this group was able to pin point areas of the code to improve, establish a performance model to give a prediction of possible performance expectation as well as ideas on not only using MPI but also OpenMP to take advantage of multi-core chip capabilities as well as HPC resources. The updated version of the code does not provide an accurate solution however the main goal of our project was achieved  by significantly increasing performance (174 \% faster than the base case). Not only did our group learn how to implement in an actual application of the HPC course but also how to prevent future downfalls when working in a group setting.
+The Shade Model is a useful tool for research scientists however improving the performance of the code would allow not only quicker computation in general but also allow larger land areas to be analyzed at once while using fewer computational resources. Using techniques learned from the HPC course this group was able to pin point areas of the code to improve, establish a performance model to give a prediction of possible performance expectation as well as ideas on not only using MPI but also OpenMP to take advantage of multi-core chip capabilities as well as HPC resources. The updated version of the code does not provide an accurate solution however the main goal of our project was achieved  by significantly increasing performance (86 \% faster than the base case). Not only did our group learn how to implement in an actual application of the HPC course but also how to prevent future downfalls when working in a group setting.
 
 %----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
